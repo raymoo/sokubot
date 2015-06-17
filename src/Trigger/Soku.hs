@@ -62,7 +62,7 @@ sokuHostAct mi = do
 
 
 sokuHostTest :: MessageInfo -> Bool
-sokuHostTest = (contentIs "!host" <||> startsWith "!host ") <&&>
+sokuHostTest = (contentIs ".host" <||> startsWith ".host ") <&&>
                ((== MTChat) . mType) <&&> voicePlus
 
 
@@ -91,7 +91,7 @@ sokuIPPT = ProtoTrigger sokuIPTest sokuIPAct
 
 
 unhostTest :: MessageInfo -> Bool
-unhostTest mi = mType mi == MTChat && contentIs "!unhost" mi && voicePlus mi
+unhostTest mi = mType mi == MTChat && contentIs ".unhost" mi && voicePlus mi
 
 unhostAct :: MessageInfo -> TriggerAct HostDB b ()
 unhostAct mi = do
@@ -109,7 +109,7 @@ unhostPT = ProtoTrigger unhostTest unhostAct
 
 kickTest :: MessageInfo -> Bool
 kickTest mi =
-  startsWith "!kickhost " mi &&
+  startsWith ".kickhost " mi &&
   mType mi == MTChat &&
   rank mi `elem` "%@#&~"
 
@@ -130,7 +130,7 @@ kickPT = ProtoTrigger kickTest kickAct
 
 
 hostingTest :: MessageInfo -> Bool
-hostingTest = contentIs "!hosting" <&&>
+hostingTest = contentIs ".hosting" <&&>
                  ((`elem` [MTChat, MTPm]) . mType)
 
 

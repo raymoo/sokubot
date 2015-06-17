@@ -17,14 +17,14 @@ anonTrig = mkTrigger "anon" (ProtoTrigger anonTest anonAct) M.empty
   
   
 anonTest :: MessageInfo -> Bool
-anonTest = startsWith "!mess " <&&> ((== MTPm) . mType)
+anonTest = startsWith ".mess " <&&> ((== MTPm) . mType)
 
 
 negCooldown :: NominalDiffTime
 negCooldown = -20
 
 usageStr :: Text
-usageStr = "Usage: !mess [#]destination, message\n" `T.append`
+usageStr = "Usage: .mess [#]destination, message\n" `T.append`
            "Use # to send to rooms"
 
 coolDownStr :: Text
