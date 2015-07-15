@@ -14,7 +14,61 @@ import qualified Data.Text as T
 type ReplState = Maybe (Repl [String])
 
 
-importList = [ "import Prelude" ]
+importList = [ "import Prelude hiding ((.), id, catch)"
+             , "import Data.Traversable as T"
+             , "import Data.Foldable as F"
+             , "import GHC.TypeLits"
+             , "import qualified Data.Map as M"
+             , "import Control.Monad"
+             , "import Control.Applicative"
+             , "import Data.Functor"
+             , "import Control.Monad.Fix"
+             , "import Control.Arrow"
+             , "import Data.Function hiding ((.), id)"
+             , "import Data.Either"
+             , "import Data.Maybe"
+             , "import Data.Int"
+             , "import Data.Word"
+             , "import Data.List"
+             , "import Data.List.Split"
+             , "import Data.Bits"
+             , "import Data.Ix"
+             , "import Data.Typeable"
+             , "import Data.Monoid"
+             , "import Data.Ratio"
+             , "import Data.Complex"
+             , "import Data.Char"
+             ]
+
+
+flagList :: [String]
+flagList = map ("-X"++)
+    ["DataKinds"
+    ,"PolyKinds"
+    ,"KindSignatures"
+    ,"TypeOperators"
+    ,"DeriveFunctor"
+    ,"DeriveTraversable"
+    ,"DeriveFoldable"
+    ,"DeriveDataTypeable"
+    ,"DeriveGeneric"
+    ,"BangPatterns"
+    ,"PatternGuards"
+    ,"MultiWayIf"
+    ,"LambdaCase"
+    ,"FlexibleInstances"
+    ,"FlexibleContexts"
+    ,"FunctionalDependencies"
+    ,"StandaloneDeriving"
+    ,"MultiParamTypeClasses"
+    ,"UnicodeSyntax"
+    ,"RankNTypes"
+    ,"ExistentialQuantification"
+    ,"GADTs"
+    ,"TypeFamilies"
+    ,"Safe"
+    ] ++
+    [ "-dcore-lint" ]
 
 waitTime = 3
 
@@ -27,7 +81,7 @@ createRepl = do
   outChan <- liftIO newChan
   repl <-
     liftIO $
-    repl' inChan outChan importList defaultFlags defaultBuildExpr defaultProcessOutput waitTime lineLength
+    repl' inChan outChan importList flagList defaultBuildExpr defaultProcessOutput waitTime lineLength
   storeVar (Just repl)
   return repl
 
@@ -51,8 +105,8 @@ isExpr = T.isPrefixOf "> "
 
 replTest :: MessageInfo -> Bool
 replTest mi = (isExpr . what <||> isPrefixed . what) mi &&
-              (rank mi /= ' ' && mType mi == MTChat) ||
-              mType mi == MTPm
+              ((rank mi /= ' ' && mType mi == MTChat) ||
+              mType mi == MTPm)
 
 
 replAct :: MessageInfo -> TriggerAct ReplState b ()
