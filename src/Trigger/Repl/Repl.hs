@@ -82,7 +82,7 @@ data Output
 
 prefix :: String -> Parser ()
 prefix (x:xs) = do
-    _ <- string [':',x]
+    _ <- string $ "@:" ++ [x]
     forM_ xs (optional . char)
     spaces
 prefix [] = fail "empty prefix"

@@ -95,11 +95,11 @@ checkRepl = do
 
 
 isPrefixed :: Text -> Bool
-isPrefixed = T.isPrefixOf ":"
+isPrefixed = T.isPrefixOf "@:"
 
 
 isExpr :: Text -> Bool
-isExpr = T.isPrefixOf "> "
+isExpr = T.isPrefixOf ".hask "
 
 
 replTest :: MessageInfo -> Bool
@@ -115,7 +115,7 @@ replAct mi = do
   mapM_ (respond mi . T.pack) . take 2 $ result
   where inString = what mi
         feedText
-          | isExpr inString = T.drop 2 inString
+          | isExpr inString = T.drop 6 inString
           | otherwise = inString
         feedString = T.unpack feedText
 
