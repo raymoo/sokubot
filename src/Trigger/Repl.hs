@@ -15,8 +15,8 @@ type ReplState = Maybe (Repl [String])
 
 
 importList = [ "import Prelude hiding ((.), id, catch)"
-             , "import Data.Traversable as T"
-             , "import Data.Foldable as F"
+             , "import qualified Data.Traversable as T"
+             , "import qualified Data.Foldable as F"
              , "import GHC.TypeLits"
              , "import qualified Data.Map as M"
              , "import Control.Monad"
