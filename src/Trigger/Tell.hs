@@ -57,7 +57,7 @@ takeTellsAct recip  = do
 tellSendTest :: MessageInfo -> Bool
 tellSendTest mi = rank mi /= ' ' &&
                   (mType mi `elem` [MTChat, MTPm]) &&
-                  (".tell " `T.isPrefixOf` what mi)
+                  ("^tell " `T.isPrefixOf` what mi)
 
 tellSendAct :: MessageInfo -> TriggerAct TellMap b ()
 tellSendAct mi = do
@@ -74,7 +74,7 @@ tellSendAct mi = do
 -- | The parts for checking
 tellGetTest :: MessageInfo -> Bool
 tellGetTest mi = (mType mi `elem` [MTChat, MTPm]) &&
-                 not (".tell" `T.isPrefixOf` what mi)
+                 not ("^tell" `T.isPrefixOf` what mi)
 
 tellGetAct :: MessageInfo -> TriggerAct TellMap b ()
 tellGetAct mi = do

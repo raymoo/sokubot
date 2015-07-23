@@ -100,7 +100,7 @@ isPrefixed = T.isPrefixOf "@:"
 
 
 isExpr :: Text -> Bool
-isExpr = T.isPrefixOf ".hask "
+isExpr = T.isPrefixOf "^hask "
 
 
 replTest :: MessageInfo -> Bool

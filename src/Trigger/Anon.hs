@@ -17,7 +17,7 @@ anonTrig = mkTrigger "anon" (ProtoTrigger anonTest anonAct) M.empty
   
   
 anonTest :: MessageInfo -> Bool
-anonTest = startsWith ".mess " <&&> ((== MTPm) . mType)
+anonTest = startsWith "^mess " <&&> ((== MTPm) . mType)
 
 
 negCooldown :: NominalDiffTime
