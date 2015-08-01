@@ -11,6 +11,25 @@ import qualified Data.Map.Strict as M
 import Data.Time.Clock
 import Control.Monad.IO.Class
 
+import Data.Attoparsec.Text (Parser)
+import qualified Data.Attoparsec.Text as AP
+
+
+parseIP :: Text -> Maybe [Text]
+parseIP = either (const Nothing) Just . AP.parseOnly ipFromRaw
+
+
+ipFromRaw :: Parser [Text]
+ipFromRaw = some pOnce
+  where pOnce = AP.takeWhile (/= 'I') *> (AP.string "IP: " <|> AP.string "IPs: ") *> ipv4T
+        ipv4T = fmap (T.intercalate "." . map (T.pack . show)) ipv4
+
+
+ipv4 :: Parser [Integer]
+ipv4 = makeList <$> AP.decimal <*> oneAfter <*> oneAfter <*> oneAfter
+  where makeList x y z a = [x,y,z,a]
+        oneAfter = AP.char '.' *> AP.decimal
+
 
 data HostRec = HostRec { hrName :: Text, hrAddress :: Text, hrTime :: UTCTime }
 
@@ -72,18 +91,22 @@ sokuHostPT = ProtoTrigger sokuHostTest sokuHostAct
 
 sokuIPTest :: MessageInfo -> Bool
 sokuIPTest mi =
-  mType mi == MTBase &&
-  (("IP: " `T.isPrefixOf` what mi) || ("IPs:" `T.isPrefixOf` what mi))
+  mType mi == MTRaw &&
+  (("IP: " `T.isInfixOf` what mi) || ("IPs:" `T.isInfixOf` what mi))
 
 
 sokuIPAct :: MessageInfo -> TriggerAct HostDB b ()
 sokuIPAct mi = do
   HostReq rName rPort rRoom <- getRequest
-  let addr = ip `T.append` ":" `T.append` rPort
-  curTime <- liftIO getCurrentTime
-  addRecord $ HostRec rName addr curTime
-  sendChat rRoom $ rName `T.append` " is hosting at " `T.append` addr
-  where ip = T.drop 4 . what $ mi
+  case ip rPort of
+   Nothing -> return ()
+   Just addrs ->
+     do
+       curTime <- liftIO getCurrentTime
+       addRecord $ HostRec rName addrs curTime
+       sendChat rRoom $ rName `T.append` " is hosting at " `T.append` addrs
+  where ip portnum =
+          fmap (T.intercalate ", " . fmap (`T.append` (":" `T.append` portnum))) . parseIP . what $ mi
         
 
 sokuIPPT :: ProtoTrigger HostDB b
