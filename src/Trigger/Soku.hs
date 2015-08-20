@@ -21,7 +21,8 @@ parseIP = either (const Nothing) Just . AP.parseOnly ipFromRaw
 
 ipFromRaw :: Parser [Text]
 ipFromRaw = prelude *> (ipv4T `AP.sepBy1` (AP.string ", "))
-  where prelude = AP.takeWhile (/= 'I') *> (AP.string "IP: " <|> AP.string "IPs: ")
+  where prelude =
+          AP.takeWhile1 (/= 'I') *> ((AP.string "IP: " <|> AP.string "IPs: ") <|> (AP.letter *> prelude))
         ipv4T = fmap (T.intercalate "." . map (T.pack . show)) ipv4
 
 
