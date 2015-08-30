@@ -15,33 +15,47 @@ import Data.Attoparsec.Text (Parser)
 import qualified Data.Attoparsec.Text as AP
 
 
+-- | Parse a list of IPs out of some Text
 parseIP :: Text -> Maybe [Text]
 parseIP = either (const Nothing) Just . AP.parseOnly ipFromRaw
 
 
+-- | The actual parser for parsing the IPs out
 ipFromRaw :: Parser [Text]
 ipFromRaw = prelude *> (ipv4T `AP.sepBy1` (AP.string ", "))
-  where prelude =
+  where prelude = -- ^ Parses everything that comes before the IP addresses
           AP.takeWhile1 (/= 'I') *> ((AP.string "IP: " <|> AP.string "IPs: ") <|> (AP.letter *> prelude))
-        ipv4T = fmap (T.intercalate "." . map (T.pack . show)) ipv4
+        ipv4T = fmap (T.intercalate "." . map (T.pack . show)) ipv4 -- ^ Parser that parses the
+                                                                    -- textified IP address
 
 
+-- | IPv4 address parser, parses to a list of 'Integer'
 ipv4 :: Parser [Integer]
 ipv4 = makeList <$> AP.decimal <*> oneAfter <*> oneAfter <*> oneAfter
   where makeList x y z a = [x,y,z,a]
         oneAfter = AP.char '.' *> AP.decimal
 
 
+-- | A record representing a single host.
 data HostRec = HostRec { hrName :: Text, hrAddress :: Text, hrTime :: UTCTime }
 
+
+-- | A record representing a request to host. This is used to hold the current
+-- requester until the server sends back an IP address.
 data HostReq = HostReq { hrqName :: Text, hrqPort :: Text, hrqRoom :: Text }
 
+
+-- | State for the trigger, containing a map of hosts, as well as the last
+-- person to make a request.
 type HostDB = (Map Text HostRec, HostReq)
 
 
+-- | 'MessageInfo' predicate checking the sender for voice or up
 voicePlus :: MessageInfo -> Bool
 voicePlus mi = rank mi `elem` "+%@#&~"
 
+
+-- | DB with no hosts and no previous request.
 emptyDB :: HostDB
 emptyDB = (M.empty, HostReq "" "" "")
 
@@ -74,13 +88,14 @@ deleteRecord name = do
 
 sokuHostAct :: MessageInfo -> TriggerAct HostDB b ()
 sokuHostAct mi = do
-  addRequest $ HostReq (who mi) port (mRoom mi)
-  command (mRoom mi) ("/ip " `T.append` who mi)
+  addRequest $ HostReq (who mi) port (mRoom mi) -- ^ Set the sender as the current requester
+  command (mRoom mi) ("/ip " `T.append` who mi) -- ^ Ask the server for the sender's IP
   where port = case T.drop 6 . what $ mi of
                 "" -> "10800"
                 x  -> x
 
 
+-- | User must have at least voice, and must make a host request in chat
 sokuHostTest :: MessageInfo -> Bool
 sokuHostTest = (contentIs "^host" <||> startsWith "^host ") <&&>
                ((== MTChat) . mType) <&&> voicePlus
@@ -90,6 +105,7 @@ sokuHostPT :: ProtoTrigger HostDB b
 sokuHostPT = ProtoTrigger sokuHostTest sokuHostAct
 
 
+-- | Does a message contain an IP?
 sokuIPTest :: MessageInfo -> Bool
 sokuIPTest mi =
   mType mi == MTRaw &&
@@ -98,15 +114,15 @@ sokuIPTest mi =
 
 sokuIPAct :: MessageInfo -> TriggerAct HostDB b ()
 sokuIPAct mi = do
-  HostReq rName rPort rRoom <- getRequest
+  HostReq rName rPort rRoom <- getRequest -- ^ Get the current requester's info
   case ip rPort of
-   Nothing -> return ()
+   Nothing -> return () -- ^ IP failed to parse for some reason
    Just addrs ->
      do
        curTime <- liftIO getCurrentTime
        addRecord $ HostRec rName addrs curTime
        sendChat rRoom $ rName `T.append` " is hosting at " `T.append` addrs
-  where ip portnum =
+  where ip portnum = -- ^ Formats the IP parsed addresses, given a port number
           fmap (T.intercalate ", " . fmap (`T.append` (":" `T.append` portnum))) . parseIP . what $ mi
         
 
@@ -116,6 +132,7 @@ sokuIPPT = ProtoTrigger sokuIPTest sokuIPAct
 
 unhostTest :: MessageInfo -> Bool
 unhostTest mi = mType mi == MTChat && contentIs "^unhost" mi && voicePlus mi
+
 
 unhostAct :: MessageInfo -> TriggerAct HostDB b ()
 unhostAct mi = do
@@ -131,6 +148,7 @@ unhostPT :: ProtoTrigger HostDB b
 unhostPT = ProtoTrigger unhostTest unhostAct
 
 
+-- | Drivers and up can kick anyone, including other auth
 kickTest :: MessageInfo -> Bool
 kickTest mi =
   startsWith "^kickhost " mi &&
@@ -169,6 +187,7 @@ hostingPT :: ProtoTrigger HostDB b
 hostingPT = ProtoTrigger hostingTest hostingAct
 
 
+-- | Generate the info messages sent in host lists.
 generateHostTexts :: UTCTime -> HostDB -> [Text]
 generateHostTexts curTime (recMap, _) = map recToMess recList
   where recList = map snd . M.toList $ recMap
@@ -181,11 +200,12 @@ generateHostTexts curTime (recMap, _) = map recToMess recList
                                               (T.pack . show $ timeDif) `T.append`
                                               " ago)"
 
+
 sokuTrig :: Trigger
 sokuTrig =
-  clusterTrigger "soku" [ sokuHostPT
-                        , sokuIPPT
-                        , hostingPT
-                        , unhostPT
-                        , kickPT
+  clusterTrigger "soku" [ sokuHostPT -- ^ For starting to host 
+                        , sokuIPPT -- ^ Receiving IPs
+                        , hostingPT -- ^ Host list request
+                        , unhostPT -- ^ Unhosting
+                        , kickPT -- ^ Kicking hosters
                         ] emptyDB
