@@ -189,8 +189,11 @@ hostingPT = ProtoTrigger hostingTest hostingAct
 
 -- | Generate the info messages sent in host lists.
 generateHostTexts :: UTCTime -> HostDB -> [Text]
-generateHostTexts curTime (recMap, _) = map recToMess recList
-  where recList = map snd . M.toList $ recMap
+generateHostTexts curTime (recMap, _) = case recList of
+                                         [] -> nobodyMess
+                                         recs -> map recToMess recs
+  where nobodyMess = ["Nobody is hosting"]
+        recList = map snd . M.toList $ recMap
         recToMess (HostRec hrName hrAddress hrTime) =
           createHostMessage hrName hrAddress (diffUTCTime curTime hrTime)
         createHostMessage user addr timeDif = user `T.append`
