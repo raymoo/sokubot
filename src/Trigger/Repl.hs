@@ -70,8 +70,12 @@ flagList = map ("-X"++)
     ] ++
     [ "-dcore-lint" ]
 
+
+-- | How long to wait before terminating the operation
 waitTime = 3
 
+
+-- | Maximum outputtable text length on Showdown
 lineLength = 300
 
 -- | Initializes the repl. Don't call multiple times or repls will hang around
@@ -95,14 +99,19 @@ checkRepl = do
    Just repl -> return repl
 
 
+-- | Determines if a message is a command
 isPrefixed :: Text -> Bool
 isPrefixed = T.isPrefixOf "@:"
 
 
+-- | Chechs if a message is an expression to be evaluated
 isExpr :: Text -> Bool
 isExpr = T.isPrefixOf "^hask "
 
 
+-- | Should we activate? Do it if it's a n expression or a command.
+-- Activate in chat if rank is voice or higher, and activate in PM for
+-- anyone.
 replTest :: MessageInfo -> Bool
 replTest mi = (isExpr . what <||> isPrefixed . what) mi &&
               ((rank mi /= ' ' && mType mi == MTChat) ||
@@ -111,11 +120,11 @@ replTest mi = (isExpr . what <||> isPrefixed . what) mi &&
 
 replAct :: MessageInfo -> TriggerAct ReplState b ()
 replAct mi = do
-  repl <- checkRepl
-  result <- liftIO $ prompt repl feedString
-  mapM_ (respond mi . T.pack) . take 2 $ result
-  where inString = what mi
-        feedText
+  repl <- checkRepl -- ^ Get the current repl
+  result <- liftIO $ prompt repl feedString -- ^ Get the result of the command
+  mapM_ (respond mi . T.pack) . take 2 $ result -- ^ Send back all the results
+  where inString = what mi -- ^ The full message
+        feedText -- ^ The text to input to the repl
           | isExpr inString = T.drop 6 inString
           | otherwise = inString
         feedString = T.unpack feedText
