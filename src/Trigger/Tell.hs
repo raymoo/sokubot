@@ -13,9 +13,10 @@ import qualified Data.Text as T
 
 
 -- | Tell message
-data TellMess = TellMess { tmSender :: Text, tmMessage :: Text }
+data TellMess = TellMess { tmSender :: Sender, tmMessage :: Text }
 
-type TellMap = Map Text [TellMess]
+
+type TellMap = Map Recipient [TellMess]
 
 type Recipient = Text
 type Sender = Text
@@ -23,12 +24,17 @@ type Sender = Text
 
 addTell :: Recipient -> Sender -> Text -> TellMap -> TellMap
 addTell recip sender mess =
+  -- | If there are no messages for the recipient already, create a new list.
+  -- otherwise just append it.
   M.alter (maybe (Just [newRec]) (Just . (newRec:))) recip'
   where newRec = TellMess sender' mess
+
+        -- | Canonical names
         recip' = normalizeName recip
         sender' = normalizeName sender
 
 
+-- | 'TriggerAct' version of 'addTell'
 addTellAct :: Recipient -> Sender -> Text -> TriggerAct TellMap b ()
 addTellAct recip sender mess = do
   oldMap <- getVar
@@ -36,6 +42,7 @@ addTellAct recip sender mess = do
   storeVar newMap
 
 
+-- | Get the current tells for a recipient, if there are any
 takeTells :: Recipient -> TellMap -> Maybe ([TellMess], TellMap)
 takeTells recip oldMap =
   let recip' = normalizeName recip
@@ -45,6 +52,7 @@ takeTells recip oldMap =
       Nothing  -> Nothing
 
 
+-- | 'TriggerAct' version of 'takeTells'
 takeTellsAct :: Recipient -> TriggerAct TellMap b (Maybe [TellMess])
 takeTellsAct recip  = do
   oldMap <- getVar
@@ -53,11 +61,12 @@ takeTellsAct recip  = do
    Just (res, newMap) -> storeVar newMap >> return (Just res)
 
 
--- | The parts for sending
+-- | User must have voice or above, and must use "^tell" in the chat or pm.
 tellSendTest :: MessageInfo -> Bool
 tellSendTest mi = rank mi /= ' ' &&
                   (mType mi `elem` [MTChat, MTPm]) &&
                   ("^tell " `T.isPrefixOf` what mi)
+
 
 tellSendAct :: MessageInfo -> TriggerAct TellMap b ()
 tellSendAct mi = do
@@ -66,25 +75,29 @@ tellSendAct mi = do
   where infoMessage = "I will tell " `T.append`
                       recip `T.append`
                       " next time I see that user."
-        spaceds = T.words . T.drop 6 $ what mi
-        recip = T.concat $ take 1 spaceds
-        mess = T.intercalate " " $ drop 1 spaceds
+        spaceds = T.words . T.drop 6 $ what mi -- ^ Stuff after "^tell " separated into words
+        recip = T.concat $ take 1 spaceds -- ^ The recipient
+        mess = T.intercalate " " $ drop 1 spaceds -- ^ The message to send
 
 
--- | The parts for checking
+-- | A user can get their tells read to them if they chat.
 tellGetTest :: MessageInfo -> Bool
 tellGetTest mi = (mType mi `elem` [MTChat, MTPm]) &&
                  not ("^tell" `T.isPrefixOf` what mi)
 
+
 tellGetAct :: MessageInfo -> TriggerAct TellMap b ()
 tellGetAct mi = do
-  mRes <- takeTellsAct (who mi)
+  mRes <- takeTellsAct (who mi) -- ^ Get any current tells for the user
   case mRes of
-   Nothing -> return ()
-   Just ress -> mapM_ replyTell ress
-   where replyString sender mess = (who mi) `T.append`
+   Nothing -> return () -- ^ No tells, don't do anything
+   Just ress -> mapM_ replyTell ress -- ^ Send a response for each tell
+   where replyString sender mess = (who mi) `T.append` 
                                    ": [" `T.append` sender `T.append` "] " `T.append`
                                    mess
+         -- ^ Make the formatted inbox message
+
+         -- ^ Send a formatted inbox message of a 'TellMess'
          replyTell (TellMess sender mess) = respond mi (replyString sender mess)
   
 
