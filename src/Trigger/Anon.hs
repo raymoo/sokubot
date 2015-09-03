@@ -12,14 +12,33 @@ import Control.Applicative
 import Data.Maybe
 
 
+accessList :: [Text]
+accessList = map normalizeName $ 
+  [ "Reimu Raymoo"
+  , "Yuzuko"
+  , "NixOS"
+  , "Magichatman2"
+  , "prem"
+  , "yuihirasawa"
+  , "waddict"
+  , "runningfatkids"
+  , "heterosexualzekrom"
+  , "vexeniv"
+  , "morfent"
+  , "hippopotas"
+  , "ascriptmaster"
+  ]
+
+
 anonTrig :: Trigger
 anonTrig = mkTrigger "anon" (ProtoTrigger anonTest anonAct) M.empty
   
 
--- | Message should start with "^mess", and should be in a PM (otherwise it's not
+-- | Message should start with ".mess", and should be in a PM (otherwise it's not
 -- really private)
 anonTest :: MessageInfo -> Bool
-anonTest = startsWith "^mess " <&&> ((== MTPm) . mType)
+anonTest mi = (startsWith ".mess " <&&> ((== MTPm) . mType)) mi &&
+              normalizeName (who mi) `elem` accessList
 
 
 -- | Negative of the anonymous message cooldown
@@ -35,6 +54,10 @@ usageStr = "Usage: .mess [#]destination, message\n" `T.append`
 
 coolDownStr :: Text
 coolDownStr = "You must wait 20 seconds between each message."
+
+
+logMessage :: Text -> Text -> TriggerAct a b ()
+logMessage user mess = writeLog $ user `T.append` " sent anon message: " `T.append` mess
 
 
 -- | The state is just a map of the last time each user sent a message
@@ -54,7 +77,7 @@ anonAct mi = do
      (_, "") -> sendUsage
 
      -- | Send the message
-     _       -> responder >> updateTS
+     _       -> responder >> updateTS >> logMessage (who mi) mess'
   where (dest, mess') = T.breakOn "," . T.strip . T.drop 6 . what $ mi
         -- ^ Separate the destination from the message to send
 

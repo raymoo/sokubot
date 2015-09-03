@@ -61,11 +61,11 @@ takeTellsAct recip  = do
    Just (res, newMap) -> storeVar newMap >> return (Just res)
 
 
--- | User must have voice or above, and must use "^tell" in the chat or pm.
+-- | User must have voice or above, and must use ".tell" in the chat or pm.
 tellSendTest :: MessageInfo -> Bool
 tellSendTest mi = rank mi /= ' ' &&
                   (mType mi `elem` [MTChat, MTPm]) &&
-                  ("^tell " `T.isPrefixOf` what mi)
+                  (".tell " `T.isPrefixOf` what mi)
 
 
 tellSendAct :: MessageInfo -> TriggerAct TellMap b ()
@@ -75,7 +75,7 @@ tellSendAct mi = do
   where infoMessage = "I will tell " `T.append`
                       recip `T.append`
                       " next time I see that user."
-        spaceds = T.words . T.drop 6 $ what mi -- ^ Stuff after "^tell " separated into words
+        spaceds = T.words . T.drop 6 $ what mi -- ^ Stuff after ".tell " separated into words
         recip = T.concat $ take 1 spaceds -- ^ The recipient
         mess = T.intercalate " " $ drop 1 spaceds -- ^ The message to send
 
@@ -83,7 +83,7 @@ tellSendAct mi = do
 -- | A user can get their tells read to them if they chat.
 tellGetTest :: MessageInfo -> Bool
 tellGetTest mi = (mType mi `elem` [MTChat, MTPm]) &&
-                 not ("^tell" `T.isPrefixOf` what mi)
+                 not (".tell" `T.isPrefixOf` what mi)
 
 
 tellGetAct :: MessageInfo -> TriggerAct TellMap b ()
