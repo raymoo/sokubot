@@ -77,7 +77,7 @@ anonAct mi = do
      (_, "") -> sendUsage
 
      -- | Send the message
-     _       -> responder >> updateTS >> logMessage (who mi) mess'
+     _       -> responder >> updateTS >> logMessage (who mi) (T.strip . T.drop 1 $ mess')
   where (dest, mess') = T.breakOn "," . T.strip . T.drop 6 . what $ mi
         -- ^ Separate the destination from the message to send
 
