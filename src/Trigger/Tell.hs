@@ -91,7 +91,7 @@ tellGetAct mi = do
   mRes <- takeTellsAct (who mi) -- ^ Get any current tells for the user
   case mRes of
    Nothing -> return () -- ^ No tells, don't do anything
-   Just ress -> mapM_ replyTell ress -- ^ Send a response for each tell
+   Just ress -> mapM_ replyTell . reverse $ ress -- ^ Send a response for each tell
    where replyString sender mess = (who mi) `T.append` 
                                    ": [" `T.append` sender `T.append` "] " `T.append`
                                    mess
