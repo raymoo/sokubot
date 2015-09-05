@@ -7,6 +7,7 @@ import Needles.Bot.Trigger
 import Trigger.Tell
 import Trigger.Anon
 import Trigger.Jibun
+import Trigger.Rooms
 import qualified Data.Text.IO as T
 import System.Environment
 
@@ -16,7 +17,12 @@ config user pass = Configuration { cUsername = user
                                  , cServer = mainServer
                                  , cPort = mainPort
                                  , cPath = mainPath
-                                 , cTriggers = [tellTrig, anonTrig, jibunTrig]
+                                 , cTriggers = [ tellTrig
+                                               , anonTrig
+                                               , jibunTrig
+                                               , joinTrig
+                                               , leaveTrig
+                                               ]
                                  , cRooms = ["animeandmanga"]
                                  , cLogger = T.putStrLn
                                  }
