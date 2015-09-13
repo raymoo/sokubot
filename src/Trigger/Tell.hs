@@ -88,17 +88,18 @@ tellGetTest mi = (mType mi `elem` [MTChat, MTPm]) &&
 
 tellGetAct :: MessageInfo -> TriggerAct TellMap b ()
 tellGetAct mi = do
-  mRes <- takeTellsAct (who mi) -- ^ Get any current tells for the user
+  mRes <- takeTellsAct recipient -- ^ Get any current tells for the user
   case mRes of
    Nothing -> return () -- ^ No tells, don't do anything
    Just ress -> mapM_ replyTell . reverse $ ress -- ^ Send a response for each tell
-   where replyString sender mess = (who mi) `T.append` 
+   where replyString sender mess = recipient `T.append` 
                                    ": [" `T.append` sender `T.append` "] " `T.append`
                                    mess
          -- ^ Make the formatted inbox message
 
          -- ^ Send a formatted inbox message of a 'TellMess'
-         replyTell (TellMess sender mess) = respond mi (replyString sender mess)
+         replyTell (TellMess sender mess) = sendPm recipient (replyString sender mess)
+         recipient = who mi
   
 
 tellTrig :: Trigger
