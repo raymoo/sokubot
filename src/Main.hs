@@ -7,7 +7,7 @@ import Needles.Bot.Trigger
 import Trigger.Tell
 import Trigger.Anon
 import Trigger.Soku
-import Trigger.Repl
+-- import Trigger.Repl
 import qualified Data.Text.IO as T
 import System.Environment
 
@@ -17,7 +17,7 @@ config user pass = Configuration { cUsername = user
                                  , cServer = mainServer
                                  , cPort = mainPort
                                  , cPath = mainPath
-                                 , cTriggers = [tellTrig, anonTrig, sokuTrig, replTrig]
+                                 , cTriggers = [tellTrig, anonTrig, sokuTrig]
                                  , cRooms = ["yuyukofanclub"]
                                  , cLogger = T.putStrLn
                                  }

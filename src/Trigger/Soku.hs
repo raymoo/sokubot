@@ -52,7 +52,7 @@ type HostDB = (Map Text HostRec, HostReq)
 
 -- | 'MessageInfo' predicate checking the sender for voice or up
 voicePlus :: MessageInfo -> Bool
-voicePlus mi = rank mi `elem` "+%@#&~"
+voicePlus mi = rank mi `elem` ("+%@#&~" :: String)
 
 
 -- | DB with no hosts and no previous request.
@@ -153,7 +153,7 @@ kickTest :: MessageInfo -> Bool
 kickTest mi =
   startsWith "^kickhost " mi &&
   mType mi == MTChat &&
-  rank mi `elem` "%@#&~"
+  rank mi `elem` ("%@#&~" :: String)
 
 
 kickAct :: MessageInfo -> TriggerAct HostDB b ()
